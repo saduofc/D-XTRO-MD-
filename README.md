@@ -1,8 +1,6 @@
 # KHAN-MD
 ---
 
-KHAN-MD v3.0
-
 Updated To Version 4.0
 
 <p align="center">  
@@ -78,7 +76,6 @@ Updated To Version 4.0
 
 🛠 ROMEKTRICKS – Plugin Development
 
-🔗 View All Contributors
 
 
 
