@@ -7,7 +7,7 @@
 ---
 
 ```
-KHAN-MD BY MR DINESH OFC💜 
+D-XTRO-MD BY MR DINESH OFC💜 
 ```
 
 --- 
