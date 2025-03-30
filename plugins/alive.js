@@ -30,7 +30,7 @@ async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, isGroup, sen
 > © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍʀ ᴅɪɴᴇꜱʜ`;
 
         // Voice message URL (PTT voice message)
-        const voiceUrl = 'https://github.com/mrdinesh595/Mssadu/raw/refs/heads/main/database/dxtro%20alive.mp3';
+        const voiceUrl = 'https://files.catbox.moe/5cs6nk.mp3';
 
         // 1. Send PTT Voice First (With Channel View Link)
         const voiceMessage = await conn.sendMessage(from, {
