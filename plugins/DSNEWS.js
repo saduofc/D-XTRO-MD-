@@ -8,8 +8,8 @@ let activeGroups = {};
 let lastNewsTitles = {};
 
 const videoLinks = [
-    "https://files.catbox.moe/rvtxog.gif",
-    "https://files.catbox.moe/rvtxog.gif"
+    "https://files.catbox.moe/hjrrxn.gif",
+    "https://files.catbox.moe/hjrrxn.gif"
 ];
 
 function getRandomVideoLink() {
