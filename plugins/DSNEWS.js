@@ -1,15 +1,14 @@
 const { cmd } = require('../command');
 const Hiru = require('hirunews-scrap');
 const Esana = require('@sl-code-lords/esana-news');
-const axios = require('axios');
-const config = require('../config');
 
 let activeGroups = {};
 let lastNewsTitles = {};
 
+// Add your gif/video links here
 const videoLinks = [
     "https://files.catbox.moe/v5ieze.gif",
-    "https://files.catbox.moe/v5ieze.gif"
+    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZGNiZ2xnYXg3enNxeTg1NnpxaTJ2eGFhczlmeTZvYjFpYTFobW5lbyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/xUPGcguWZHRC2HyBRS/giphy.gif"
 ];
 
 function getRandomVideoLink() {
@@ -60,19 +59,21 @@ async function checkAndPostNews(conn, groupId) {
             try {
                 await conn.sendMessage(groupId, {
                     video: { url: randomVideo },
-                    caption: `*🔵𝐍𝐄𝐖𝐒 𝐀𝐋𝐄𝐑𝐓!*\n▁ ▂ ▄ ▅ ▆ ▇ █ [  ] █ ▇ ▆ ▅ ▄ ▂ ▁\n\n📰 *${newsItem.title}*\n${newsItem.content}\n\n${newsItem.date}\n\n> *©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍʀ ᴅɪɴᴇꜱʜ ᴏꜰᴄ*\n> *QUEEN-SADU-MD & D-XTRO-MD*`
+                    gifPlayback: true,
+                    caption: `*🔵 𝐍𝐄𝐖𝐒 𝐀𝐋𝐄𝐑𝐓!*\n▁ ▂ ▄ ▅ ▆ ▇ █ [  ] █ ▇ ▆ ▅ ▄ ▂ ▁\n\n📰 *${newsItem.title}*\n${newsItem.content}\n\n🗓️ ${newsItem.date}\n\n> *© Powered by Mr Dinesh OFC*\n> *QUEEN-SADU-MD & D-XTRO-MD*`
                 });
 
                 lastNewsTitles[groupId].push(newsItem.title);
                 if (lastNewsTitles[groupId].length > 100) lastNewsTitles[groupId].shift();
 
             } catch (e) {
-                console.error(`Failed to send video message: ${e.message}`);
+                console.error(`Failed to send news with video: ${e.message}`);
             }
         }
     });
 }
 
+// Activate news updates in group
 cmd({
     pattern: "startnews",
     desc: "Enable Sri Lankan news updates in this group",
@@ -81,40 +82,37 @@ cmd({
     filename: __filename
 }, async (conn, mek, m, { from, isGroup, participants }) => {
     try {
-        if (isGroup) {
-            const isAdmin = participants.some(p => p.id === mek.sender && p.admin);
-            const isBotOwner = mek.sender === conn.user.jid;
+        if (!isGroup) return await conn.sendMessage(from, { text: "This command can only be used in groups." });
 
-            if (isAdmin || isBotOwner) {
-                if (!activeGroups[from]) {
-                    activeGroups[from] = true;
+        const isAdmin = participants.some(p => p.id === mek.sender && p.admin);
+        const isBotOwner = mek.sender === conn.user.jid;
 
-                    await conn.sendMessage(from, { text: "🇱🇰 Auto 24/7 News Activated.\n\n> QUEEN-SADU-MD & D-XTRO-MD" });
+        if (!(isAdmin || isBotOwner)) return await conn.sendMessage(from, { text: "🚫 Only group admins or bot owner can use this command." });
 
-                    if (!activeGroups['interval']) {
-                        activeGroups['interval'] = setInterval(async () => {
-                            for (const groupId in activeGroups) {
-                                if (activeGroups[groupId] && groupId !== 'interval') {
-                                    await checkAndPostNews(conn, groupId);
-                                }
-                            }
-                        }, 60000);
+        if (!activeGroups[from]) {
+            activeGroups[from] = true;
+            await conn.sendMessage(from, { text: "✅ 24/7 Sri Lankan News Activated.\n> *QUEEN-SADU-MD & D-XTRO-MD*" });
+
+            if (!activeGroups['interval']) {
+                activeGroups['interval'] = setInterval(async () => {
+                    for (const groupId in activeGroups) {
+                        if (activeGroups[groupId] && groupId !== 'interval') {
+                            await checkAndPostNews(conn, groupId);
+                        }
                     }
-                } else {
-                    await conn.sendMessage(from, { text: "*✅ 24/7 News Already Activated.*\n\n> QUEEN-SADU-MD & D-XTRO-MD" });
-                }
-            } else {
-                await conn.sendMessage(from, { text: "🚫 This command can only be used by group admins or the bot owner." });
+                }, 60000); // Every 1 min
             }
         } else {
-            await conn.sendMessage(from, { text: "This command can only be used in groups." });
+            await conn.sendMessage(from, { text: "*⚠️ News is already active in this group.*" });
         }
+
     } catch (e) {
-        console.error(`Error in startnews command: ${e.message}`);
-        await conn.sendMessage(from, { text: "Failed to activate the news service." });
+        console.error(e);
+        await conn.sendMessage(from, { text: "❌ Failed to activate news." });
     }
 });
 
+// Deactivate news updates
 cmd({
     pattern: "stopnews",
     desc: "Disable Sri Lankan news updates in this group",
@@ -123,30 +121,27 @@ cmd({
     filename: __filename
 }, async (conn, mek, m, { from, isGroup, participants }) => {
     try {
-        if (isGroup) {
-            const isAdmin = participants.some(p => p.id === mek.sender && p.admin);
-            const isBotOwner = mek.sender === conn.user.jid;
+        if (!isGroup) return await conn.sendMessage(from, { text: "This command can only be used in groups." });
 
-            if (isAdmin || isBotOwner) {
-                if (activeGroups[from]) {
-                    delete activeGroups[from];
-                    await conn.sendMessage(from, { text: "*🚫 Disable Sri Lankan news updates in this group*" });
+        const isAdmin = participants.some(p => p.id === mek.sender && p.admin);
+        const isBotOwner = mek.sender === conn.user.jid;
 
-                    if (Object.keys(activeGroups).length === 1 && activeGroups['interval']) {
-                        clearInterval(activeGroups['interval']);
-                        delete activeGroups['interval'];
-                    }
-                } else {
-                    await conn.sendMessage(from, { text: "🛑 24/7 News is not active in this group.\n\n> ©QUEEN-SADU-MD & D-XTRO-MD" });
-                }
-            } else {
-                await conn.sendMessage(from, { text: "🚫 This command can only be used by group admins or the bot owner." });
+        if (!(isAdmin || isBotOwner)) return await conn.sendMessage(from, { text: "🚫 Only group admins or bot owner can use this command." });
+
+        if (activeGroups[from]) {
+            delete activeGroups[from];
+            await conn.sendMessage(from, { text: "🛑 News updates disabled for this group." });
+
+            if (Object.keys(activeGroups).length === 1 && activeGroups['interval']) {
+                clearInterval(activeGroups['interval']);
+                delete activeGroups['interval'];
             }
         } else {
-            await conn.sendMessage(from, { text: "This command can only be used in groups." });
+            await conn.sendMessage(from, { text: "⚠️ News is not currently active in this group." });
         }
+
     } catch (e) {
-        console.error(`Error in stopnews command: ${e.message}`);
-        await conn.sendMessage(from, { text: "Failed to deactivate the news service." });
+        console.error(e);
+        await conn.sendMessage(from, { text: "❌ Failed to deactivate news." });
     }
 });
