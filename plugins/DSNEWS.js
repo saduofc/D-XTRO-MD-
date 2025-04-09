@@ -7,10 +7,21 @@ const config = require('../config');
 let activeGroups = {};
 let lastNewsTitles = {};
 
+const videoLinks = [
+    "https://media.giphy.com/media/3o7abldj0b3rxrZUxW/giphy.mp4",
+    "https://media.giphy.com/media/26BRqE1iZJr4o3XIk/giphy.mp4",
+    "https://media.giphy.com/media/l0HlNQ03J5JxX6lva/giphy.mp4",
+    "https://media.tenor.com/JEkz1xPgn2oAAAAC/news-flash.gif",
+    "https://media.tenor.com/yheo1GGu3FwAAAAC/newscaster.gif"
+];
+
+function getRandomVideoLink() {
+    return videoLinks[Math.floor(Math.random() * videoLinks.length)];
+}
+
 async function getLatestNews() {
     let newsData = [];
-    
-    // Hiru News
+
     try {
         const hiruApi = new Hiru();
         const hiruNews = await hiruApi.BreakingNews();
@@ -23,18 +34,15 @@ async function getLatestNews() {
         console.error(`Error fetching Hiru News: ${err.message}`);
     }
 
-    // Esana News
     try {
         const esanaApi = new Esana();
-        const esanaNews = await esanaApi.getLatestNews(); 
-        if (esanaNews && esanaNews.title && esanaNews.description && esanaNews.publishedAt) {
+        const esanaNews = await esanaApi.getLatestNews();
+        if (esanaNews?.title && esanaNews?.description && esanaNews?.publishedAt) {
             newsData.push({
                 title: esanaNews.title,
                 content: esanaNews.description,
                 date: esanaNews.publishedAt
             });
-        } else {
-            console.error("Error: Esana News returned invalid data.");
         }
     } catch (err) {
         console.error(`Error fetching Esana News: ${err.message}`);
@@ -43,29 +51,31 @@ async function getLatestNews() {
     return newsData;
 }
 
-// Function to check for and post new news to the group
 async function checkAndPostNews(conn, groupId) {
     const latestNews = await getLatestNews();
+
     latestNews.forEach(async (newsItem) => {
-        if (!lastNewsTitles[groupId]) {
-            lastNewsTitles[groupId] = [];
-        }
+        if (!lastNewsTitles[groupId]) lastNewsTitles[groupId] = [];
 
         if (!lastNewsTitles[groupId].includes(newsItem.title)) {
-           await conn.sendMessage(groupId, { 
-                text: `*🔵𝐍𝐄𝐖𝐒 𝐀𝐋𝐄𝐑𝐓!*\n▁ ▂ ▄ ▅ ▆ ▇ █ [  ] █ ▇ ▆ ▅ ▄ ▂ ▁\n\n\n📰 *${newsItem.title}*\n${newsItem.content}\n\n${newsItem.date}\n\n> *©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍʀ ᴅɪɴᴇꜱʜ ᴏꜰᴄ*\n> *QUEEN-SADU-MD & D-XTRO-MD*` 
-            });
-            lastNewsTitles[groupId].push(newsItem.title);
+            const randomVideo = getRandomVideoLink();
 
-            if (lastNewsTitles[groupId].length > 100) {
-                lastNewsTitles[groupId].shift();
+            try {
+                await conn.sendMessage(groupId, {
+                    video: { url: randomVideo },
+                    caption: `*🔵𝐍𝐄𝐖𝐒 𝐀𝐋𝐄𝐑𝐓!*\n▁ ▂ ▄ ▅ ▆ ▇ █ [  ] █ ▇ ▆ ▅ ▄ ▂ ▁\n\n📰 *${newsItem.title}*\n${newsItem.content}\n\n${newsItem.date}\n\n> *©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍʀ ᴅɪɴᴇꜱʜ ᴏꜰᴄ*\n> *QUEEN-SADU-MD & D-XTRO-MD*`
+                });
+
+                lastNewsTitles[groupId].push(newsItem.title);
+                if (lastNewsTitles[groupId].length > 100) lastNewsTitles[groupId].shift();
+
+            } catch (e) {
+                console.error(`Failed to send video message: ${e.message}`);
             }
         }
     });
 }
 
-
-// Command to activate the general news service in the group
 cmd({
     pattern: "startnews",
     desc: "Enable Sri Lankan news updates in this group",
@@ -91,9 +101,8 @@ cmd({
                                     await checkAndPostNews(conn, groupId);
                                 }
                             }
-                        }, 60000); // Check for news every 60 seconds
+                        }, 60000);
                     }
-
                 } else {
                     await conn.sendMessage(from, { text: "*✅ 24/7 News Already Activated.*\n\n> QUEEN-SADU-MD & D-XTRO-MD" });
                 }
@@ -104,12 +113,11 @@ cmd({
             await conn.sendMessage(from, { text: "This command can only be used in groups." });
         }
     } catch (e) {
-        console.error(`Error in news command: ${e.message}`);
+        console.error(`Error in startnews command: ${e.message}`);
         await conn.sendMessage(from, { text: "Failed to activate the news service." });
     }
 });
 
-// stop news
 cmd({
     pattern: "stopnews",
     desc: "Disable Sri Lankan news updates in this group",
@@ -141,7 +149,7 @@ cmd({
             await conn.sendMessage(from, { text: "This command can only be used in groups." });
         }
     } catch (e) {
-        console.error(`Error in news command: ${e.message}`);
+        console.error(`Error in stopnews command: ${e.message}`);
         await conn.sendMessage(from, { text: "Failed to deactivate the news service." });
     }
 });
