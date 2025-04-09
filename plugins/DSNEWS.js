@@ -8,11 +8,8 @@ let activeGroups = {};
 let lastNewsTitles = {};
 
 const videoLinks = [
-    "https://media.giphy.com/media/3o7abldj0b3rxrZUxW/giphy.mp4",
-    "https://media.giphy.com/media/26BRqE1iZJr4o3XIk/giphy.mp4",
-    "https://media.giphy.com/media/l0HlNQ03J5JxX6lva/giphy.mp4",
-    "https://media.tenor.com/JEkz1xPgn2oAAAAC/news-flash.gif",
-    "https://media.tenor.com/yheo1GGu3FwAAAAC/newscaster.gif"
+    "https://files.catbox.moe/rvtxog.gif",
+    "https://files.catbox.moe/rvtxog.gif"
 ];
 
 function getRandomVideoLink() {
