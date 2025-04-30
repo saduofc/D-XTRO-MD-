@@ -8,8 +8,10 @@ let lastNewsTitles = {};
 
 // MP4 short looping videos with gif effect
 const gifStyleVideos = [
-    "https://files.catbox.moe/405y67.mp4",
-    "https://files.catbox.moe/eslg4p.mp4"
+    "https://files.catbox.moe/fh2buv.mp4",
+    "https://files.catbox.moe/9jtwyd.mp4",
+    "https://files.catbox.moe/cimbte.mp4",
+    "https://files.catbox.moe/9dcwhp.mp4"
 ];
 
 function getRandomGifVideo() {
