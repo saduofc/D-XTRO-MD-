@@ -70,7 +70,7 @@ latestNews.forEach(async (newsItem) => {
 
     if (!lastNewsTitles[groupId].includes(newsItem.title)) {
         const gifVideo = getRandomGifVideo();
-        const caption = `*\uD83D\uDD35 NEWS ALERT!*
+        const caption = `*\uD83D\uDD35 DS ALERT!*
 
 ▁ ▂ ▄ ▅ ▆ ▇ █ [  ] █ ▇ ▆ ▅ ▄ ▂ ▁
 
