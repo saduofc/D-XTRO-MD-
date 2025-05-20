@@ -6,6 +6,7 @@ const config = require('../config');
 let activeGroups = {};
 let lastNewsTitles = {};
 
+// MP4 short looping videos with gif effect
 const gifStyleVideos = [
     "https://files.catbox.moe/405y67.mp4",
     "https://files.catbox.moe/eslg4p.mp4"
@@ -21,35 +22,27 @@ async function getLatestNews() {
     try {
         const hiruApi = new Hiru();
         const hiruNews = await hiruApi.BreakingNews();
-
-        if (hiruNews?.results?.title) {
-            newsData.push({
-                title: hiruNews.results.title,
-                content: hiruNews.results.news || 'No content from Hiru.',
-                date: hiruNews.results.date || new Date().toLocaleString()
-            });
-        } else {
-            console.log('[Hiru] No valid data returned.');
-        }
+        newsData.push({
+            title: hiruNews.results.title,
+            content: hiruNews.results.news,
+            date: hiruNews.results.date
+        });
     } catch (err) {
-        console.error(`[Hiru] Error: ${err.message}`);
+        console.error(`Error fetching Hiru News: ${err.message}`);
     }
 
     try {
         const esanaApi = new Esana();
         const esanaNews = await esanaApi.getLatestNews();
-
-        if (esanaNews?.title) {
+        if (esanaNews?.title && esanaNews?.description && esanaNews?.publishedAt) {
             newsData.push({
                 title: esanaNews.title,
-                content: esanaNews.description || 'No content from Esana.',
-                date: esanaNews.publishedAt || new Date().toLocaleString()
+                content: esanaNews.description,
+                date: esanaNews.publishedAt
             });
-        } else {
-            console.log('[Esana] No valid data returned.');
         }
     } catch (err) {
-        console.error(`[Esana] Error: ${err.message}`);
+        console.error(`Error fetching Esana News: ${err.message}`);
     }
 
     return newsData;
@@ -57,11 +50,6 @@ async function getLatestNews() {
 
 async function checkAndPostNews(conn, groupId) {
     const latestNews = await getLatestNews();
-
-    if (!latestNews.length) {
-        console.log(`[${groupId}] No latest news.`);
-        return;
-    }
 
     latestNews.forEach(async (newsItem) => {
         if (!lastNewsTitles[groupId]) lastNewsTitles[groupId] = [];
@@ -81,17 +69,13 @@ async function checkAndPostNews(conn, groupId) {
                 lastNewsTitles[groupId].push(newsItem.title);
                 if (lastNewsTitles[groupId].length > 100) lastNewsTitles[groupId].shift();
 
-                console.log(`[${groupId}] Sent: ${newsItem.title}`);
             } catch (e) {
-                console.error(`[${groupId}] Failed to send: ${e.message}`);
+                console.error(`Failed to send video message: ${e.message}`);
             }
-        } else {
-            console.log(`[${groupId}] Already sent: ${newsItem.title}`);
         }
     });
 }
 
-// START NEWS
 cmd({
     pattern: "startnews",
     desc: "Enable Sri Lankan news updates in this group",
@@ -108,41 +92,32 @@ cmd({
                 if (!activeGroups[from]) {
                     activeGroups[from] = true;
 
-                    await conn.sendMessage(from, {
-                        text: "🇱🇰 *Auto 24/7 News Activated Successfully!*\n\n> *QUEEN-SADU-MD & D-XTRO-MD*"
-                    });
+                    await conn.sendMessage(from, { text: "🇱🇰 Auto 24/7 News Activated.\n\n> QUEEN-SADU-MD & D-XTRO-MD" });
 
                     if (!activeGroups['interval']) {
                         activeGroups['interval'] = setInterval(async () => {
                             for (const groupId in activeGroups) {
-                                if (groupId !== 'interval' && activeGroups[groupId]) {
+                                if (activeGroups[groupId] && groupId !== 'interval') {
                                     await checkAndPostNews(conn, groupId);
                                 }
                             }
-                        }, 60000); // every 1 minute
+                        }, 60000);
                     }
                 } else {
-                    await conn.sendMessage(from, {
-                        text: "*✅ 24/7 News Already Activated.*\n\n> *QUEEN-SADU-MD & D-XTRO-MD*"
-                    });
+                    await conn.sendMessage(from, { text: "*✅ 24/7 News Already Activated.*\n\n> QUEEN-SADU-MD & D-XTRO-MD" });
                 }
             } else {
-                await conn.sendMessage(from, {
-                    text: "🚫 *Only admins or bot owner can activate this feature!*"
-                });
+                await conn.sendMessage(from, { text: "🚫 Only group admins or bot owner can use this command." });
             }
         } else {
-            await conn.sendMessage(from, {
-                text: "❗ This command can only be used in groups."
-            });
+            await conn.sendMessage(from, { text: "This command can only be used in groups." });
         }
     } catch (e) {
-        console.error(`startnews error: ${e.message}`);
-        await conn.sendMessage(from, { text: "⚠️ Failed to activate news updates." });
+        console.error(`Error in startnews command: ${e.message}`);
+        await conn.sendMessage(from, { text: "Failed to activate news service." });
     }
 });
 
-// STOP NEWS
 cmd({
     pattern: "stopnews",
     desc: "Disable Sri Lankan news updates in this group",
@@ -158,23 +133,23 @@ cmd({
             if (isAdmin || isBotOwner) {
                 if (activeGroups[from]) {
                     delete activeGroups[from];
-                    await conn.sendMessage(from, { text: "*🛑 News updates disabled in this group.*" });
+                    await conn.sendMessage(from, { text: "*🛑 News updates disabled in this group*" });
 
                     if (Object.keys(activeGroups).length === 1 && activeGroups['interval']) {
                         clearInterval(activeGroups['interval']);
                         delete activeGroups['interval'];
                     }
                 } else {
-                    await conn.sendMessage(from, { text: "⚠️ News updates are not active in this group." });
+                    await conn.sendMessage(from, { text: "⚠️ News updates not active in this group." });
                 }
             } else {
-                await conn.sendMessage(from, { text: "🚫 *Only admins or bot owner can stop news updates!*" });
+                await conn.sendMessage(from, { text: "🚫 Only group admins or bot owner can use this command." });
             }
         } else {
-            await conn.sendMessage(from, { text: "❗ This command can only be used in groups." });
+            await conn.sendMessage(from, { text: "This command can only be used in groups." });
         }
     } catch (e) {
-        console.error(`stopnews error: ${e.message}`);
-        await conn.sendMessage(from, { text: "⚠️ Failed to deactivate news updates." });
+        console.error(`Error in stopnews command: ${e.message}`);
+        await conn.sendMessage(from, { text: "Failed to deactivate news service." });
     }
 });
