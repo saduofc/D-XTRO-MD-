@@ -67,7 +67,7 @@ async function checkAndPostNews(conn, groupId) {
 
 // Command to activate the general news service in the group
 cmd({
-    pattern: "Don",
+    pattern: "newsdon",
     desc: "Enable Sri Lankan news updates in this group",
     isGroup: true,
     react: "📰",
@@ -111,7 +111,7 @@ cmd({
 
 // stop news
 cmd({
-    pattern: "Doff",
+    pattern: "newsdoff",
     desc: "Disable Sri Lankan news updates in this group",
     isGroup: true,
     react: "🛑",
