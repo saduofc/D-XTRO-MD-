@@ -1,71 +1,73 @@
 const { cmd } = require('../command');
-const Hiru = require('hirunews-scrap');
-const Esana = require('@sl-code-lords/esana-news');
-const axios = require('axios');
 const config = require('../config');
+const fetch = require('node-fetch');
 
 let activeGroups = {};
 let lastNewsTitles = {};
 
+// MP4 short looping videos with gif effect
+const gifStyleVideos = [
+    "https://files.catbox.moe/405y67.mp4",
+    "https://files.catbox.moe/eslg4p.mp4"
+];
+
+function getRandomGifVideo() {
+    return gifStyleVideos[Math.floor(Math.random() * gifStyleVideos.length)];
+}
+
 async function getLatestNews() {
     let newsData = [];
-    
-    // Hiru News
-    try {
-        const hiruApi = new Hiru();
-        const hiruNews = await hiruApi.BreakingNews();
-        newsData.push({
-            title: hiruNews.results.title,
-            content: hiruNews.results.news,
-            date: hiruNews.results.date
-        });
-    } catch (err) {
-        console.error(`Error fetching Hiru News: ${err.message}`);
-    }
 
-    // Esana News
     try {
-        const esanaApi = new Esana();
-        const esanaNews = await esanaApi.getLatestNews(); 
-        if (esanaNews && esanaNews.title && esanaNews.description && esanaNews.publishedAt) {
-            newsData.push({
-                title: esanaNews.title,
-                content: esanaNews.description,
-                date: esanaNews.publishedAt
-            });
-        } else {
-            console.error("Error: Esana News returned invalid data.");
+        const response = await fetch("https://newsapimd-ffb0532c0585.herokuapp.com/");
+        const json = await response.json();
+
+        if (Array.isArray(json) && json.length > 0) {
+            for (const news of json) {
+                if (news.title && news.description && news.date) {
+                    newsData.push({
+                        title: news.title,
+                        content: news.description,
+                        date: news.date
+                    });
+                }
+            }
         }
     } catch (err) {
-        console.error(`Error fetching Esana News: ${err.message}`);
+        console.error(`Error fetching custom API news: ${err.message}`);
     }
 
     return newsData;
 }
 
-// Function to check for and post new news to the group
 async function checkAndPostNews(conn, groupId) {
     const latestNews = await getLatestNews();
+
     latestNews.forEach(async (newsItem) => {
-        if (!lastNewsTitles[groupId]) {
-            lastNewsTitles[groupId] = [];
-        }
+        if (!lastNewsTitles[groupId]) lastNewsTitles[groupId] = [];
 
         if (!lastNewsTitles[groupId].includes(newsItem.title)) {
-           await conn.sendMessage(groupId, { 
-                text: `*🔵𝐍𝐄𝐖𝐒 𝐀𝐋𝐄𝐑𝐓!*\n▁ ▂ ▄ ▅ ▆ ▇ █ [  ] █ ▇ ▆ ▅ ▄ ▂ ▁\n\n\n📰 *${newsItem.title}*\n${newsItem.content}\n\n${newsItem.date}\n\n> *©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍʀ ᴅɪɴᴇꜱʜ ᴏꜰᴄ*\n> *QUEEN-SADU-MD & D-XTRO-MD*` 
-            });
-            lastNewsTitles[groupId].push(newsItem.title);
+            const gifVideo = getRandomGifVideo();
+            const caption = `*🔵 𝐍𝐄𝐖𝐒 𝐀𝐋𝐄𝐑𝐓!*\n▁ ▂ ▄ ▅ ▆ ▇ █ [  ] █ ▇ ▆ ▅ ▄ ▂ ▁\n\n📰 *${newsItem.title}*\n\n${newsItem.content}\n\n${newsItem.date}\n\n> *©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍʀ ᴅɪɴᴇꜱʜ ᴏꜰᴄ*\n> *QUEEN-SADU-MD & D-XTRO-MD*`;
 
-            if (lastNewsTitles[groupId].length > 100) {
-                lastNewsTitles[groupId].shift();
+            try {
+                await conn.sendMessage(groupId, {
+                    video: { url: gifVideo },
+                    caption,
+                    mimetype: "video/mp4",
+                    gifPlayback: true
+                });
+
+                lastNewsTitles[groupId].push(newsItem.title);
+                if (lastNewsTitles[groupId].length > 100) lastNewsTitles[groupId].shift();
+
+            } catch (e) {
+                console.error(`Failed to send video message: ${e.message}`);
             }
         }
     });
 }
 
-
-// Command to activate the general news service in the group
 cmd({
     pattern: "startnews",
     desc: "Enable Sri Lankan news updates in this group",
@@ -91,25 +93,23 @@ cmd({
                                     await checkAndPostNews(conn, groupId);
                                 }
                             }
-                        }, 60000); // Check for news every 60 seconds
+                        }, 60000);
                     }
-
                 } else {
                     await conn.sendMessage(from, { text: "*✅ 24/7 News Already Activated.*\n\n> QUEEN-SADU-MD & D-XTRO-MD" });
                 }
             } else {
-                await conn.sendMessage(from, { text: "🚫 This command can only be used by group admins or the bot owner." });
+                await conn.sendMessage(from, { text: "🚫 Only group admins or bot owner can use this command." });
             }
         } else {
             await conn.sendMessage(from, { text: "This command can only be used in groups." });
         }
     } catch (e) {
-        console.error(`Error in news command: ${e.message}`);
-        await conn.sendMessage(from, { text: "Failed to activate the news service." });
+        console.error(`Error in startnews command: ${e.message}`);
+        await conn.sendMessage(from, { text: "Failed to activate news service." });
     }
 });
 
-// stop news
 cmd({
     pattern: "stopnews",
     desc: "Disable Sri Lankan news updates in this group",
@@ -125,23 +125,23 @@ cmd({
             if (isAdmin || isBotOwner) {
                 if (activeGroups[from]) {
                     delete activeGroups[from];
-                    await conn.sendMessage(from, { text: "*🚫 Disable Sri Lankan news updates in this group*" });
+                    await conn.sendMessage(from, { text: "*🛑 News updates disabled in this group*" });
 
                     if (Object.keys(activeGroups).length === 1 && activeGroups['interval']) {
                         clearInterval(activeGroups['interval']);
                         delete activeGroups['interval'];
                     }
                 } else {
-                    await conn.sendMessage(from, { text: "🛑 24/7 News is not active in this group.\n\n> ©QUEEN-SADU-MD & D-XTRO-MD" });
+                    await conn.sendMessage(from, { text: "⚠️ News updates not active in this group." });
                 }
             } else {
-                await conn.sendMessage(from, { text: "🚫 This command can only be used by group admins or the bot owner." });
+                await conn.sendMessage(from, { text: "🚫 Only group admins or bot owner can use this command." });
             }
         } else {
             await conn.sendMessage(from, { text: "This command can only be used in groups." });
         }
     } catch (e) {
-        console.error(`Error in news command: ${e.message}`);
-        await conn.sendMessage(from, { text: "Failed to deactivate the news service." });
+        console.error(`Error in stopnews command: ${e.message}`);
+        await conn.sendMessage(from, { text: "Failed to deactivate news service." });
     }
 });
