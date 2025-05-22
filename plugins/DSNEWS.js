@@ -1,8 +1,5 @@
-// Start of your plugin
 const { cmd } = require('../command');
-const Esana = require('@sl-code-lords/esana-news');
-const Parser = require('rss-parser');
-const parser = new Parser();
+const axios = require('axios');
 
 let activeGroups = {};
 let lastNewsTitles = {};
@@ -15,48 +12,30 @@ function getRandomGif() {
   return gifVideos[Math.floor(Math.random() * gifVideos.length)];
 }
 
-function isWithinLast10Minutes(pubDate) {
-  const published = new Date(pubDate);
+function isWithinLast10Minutes(dateStr) {
+  const published = new Date(dateStr);
   const now = new Date();
-  const diff = (now - published) / 1000 / 60; // in minutes
-  return diff <= 10;
+  return (now - published) / 1000 / 60 <= 10;
 }
 
-async function getSinhalaNews() {
-  let newsItems = [];
-
+async function getNewsFromAPI() {
   try {
-    const esana = new Esana();
-    const esanaData = await esana.getNews();
-    if (Array.isArray(esanaData)) {
-      newsItems.push(...esanaData.map(item => ({
+    const res = await axios.get('https://newsapimd-ffb0532c0585.herokuapp.com/');
+    if (Array.isArray(res.data)) {
+      return res.data.map(item => ({
         title: item.title,
-        content: item.description,
-        date: item.time || new Date().toISOString()
-      })));
+        content: item.content,
+        date: item.date
+      }));
     }
   } catch (e) {
-    console.error("Esana API failed, trying RSS...");
+    console.error("News API error:", e.message);
+    return [];
   }
-
-  try {
-    const feed = await parser.parseURL('https://www.ada.lk/rss');
-    feed.items.forEach(item => {
-      newsItems.push({
-        title: item.title,
-        content: item.contentSnippet,
-        date: item.pubDate
-      });
-    });
-  } catch (e) {
-    console.error("RSS Feed failed: " + e.message);
-  }
-
-  return newsItems;
 }
 
 async function postNews(conn, groupId) {
-  const newsList = await getSinhalaNews();
+  const newsList = await getNewsFromAPI();
   if (!newsList.length) return;
 
   if (!lastNewsTitles[groupId]) lastNewsTitles[groupId] = [];
@@ -65,7 +44,7 @@ async function postNews(conn, groupId) {
     if (!item.date || !isWithinLast10Minutes(item.date)) continue;
     if (lastNewsTitles[groupId].includes(item.title)) continue;
 
-    const caption = `*\uD83D\uDCF5 NEWS UPDATE!*\n\n*${item.title}*\n\n${item.content}\n\uD83D\uDD52 ${item.date}\n\n───────────────\n*© Powered by Mr Dinesh OFC*\n*QUEEN-SADU-MD & D-XTRO-MD*`;
+    const caption = `*\uD83D\uDCF0 NEWS ALERT!*\n\n*${item.title}*\n\n${item.content}\n🕒 ${item.date}\n\n───────────────\n*© Powered by Mr Dinesh OFC*\n*QUEEN-SADU-MD & D-XTRO-MD*`;
 
     try {
       await conn.sendMessage(groupId, {
@@ -74,68 +53,56 @@ async function postNews(conn, groupId) {
         mimetype: "video/mp4",
         gifPlayback: true
       });
-
       lastNewsTitles[groupId].push(item.title);
       if (lastNewsTitles[groupId].length > 100) lastNewsTitles[groupId].shift();
     } catch (e) {
-      console.error("Send failed:", e.message);
+      console.error("Failed to send message:", e.message);
     }
   }
 }
 
 cmd({
   pattern: "startnews",
-  desc: "Enable Sinhala news updates",
+  desc: "Enable auto Sinhala news updates",
   isGroup: true,
-  react: "\uD83D\uDCF0",
+  react: "📰",
   filename: __filename
 }, async (conn, mek, m, { from, isGroup, participants }) => {
-  if (!isGroup)
-    return await conn.sendMessage(from, { text: "\u274C Group only command." });
-
+  if (!isGroup) return await conn.sendMessage(from, { text: "❌ Group only command." });
   const isAdmin = participants.some(p => p.id === mek.sender && p.admin);
   const isOwner = mek.sender === conn.user.jid;
+  if (!isAdmin && !isOwner) return await conn.sendMessage(from, { text: "🚫 Admin/Bot owner only." });
 
-  if (!isAdmin && !isOwner)
-    return await conn.sendMessage(from, { text: "\uD83D\uDEAB Admin/bot owner only." });
-
-  if (activeGroups[from])
-    return await conn.sendMessage(from, { text: "\u2705 Already active." });
+  if (activeGroups[from]) return await conn.sendMessage(from, { text: "✅ Already active!" });
 
   activeGroups[from] = true;
-  await conn.sendMessage(from, { text: "\u2705 Sinhala Auto-News Activated!" });
+  await conn.sendMessage(from, { text: "✅ Auto-News Activated!" });
 
   if (!activeGroups['interval']) {
     activeGroups['interval'] = setInterval(async () => {
       for (const groupId in activeGroups) {
-        if (groupId !== 'interval')
-          await postNews(conn, groupId);
+        if (groupId !== 'interval') await postNews(conn, groupId);
       }
-    }, 1000 * 60 * 10); // every 10 minutes
+    }, 1000 * 60 * 10);
   }
 });
 
 cmd({
   pattern: "stopnews",
-  desc: "Disable Sinhala news updates",
+  desc: "Disable auto news",
   isGroup: true,
-  react: "\uD83D\uDED1",
+  react: "🛑",
   filename: __filename
 }, async (conn, mek, m, { from, isGroup, participants }) => {
-  if (!isGroup)
-    return await conn.sendMessage(from, { text: "\u274C Group only command." });
-
+  if (!isGroup) return await conn.sendMessage(from, { text: "❌ Group only command." });
   const isAdmin = participants.some(p => p.id === mek.sender && p.admin);
   const isOwner = mek.sender === conn.user.jid;
+  if (!isAdmin && !isOwner) return await conn.sendMessage(from, { text: "🚫 Admin/Bot owner only." });
 
-  if (!isAdmin && !isOwner)
-    return await conn.sendMessage(from, { text: "\uD83D\uDEAB Admin/bot owner only." });
-
-  if (!activeGroups[from])
-    return await conn.sendMessage(from, { text: "\u26A0\uFE0F Not active yet." });
+  if (!activeGroups[from]) return await conn.sendMessage(from, { text: "⚠️ Not active in this group." });
 
   delete activeGroups[from];
-  await conn.sendMessage(from, { text: "\uD83D\uDED1 Sinhala News Stopped in this group" });
+  await conn.sendMessage(from, { text: "🛑 News updates stopped." });
 
   if (Object.keys(activeGroups).length === 1 && activeGroups['interval']) {
     clearInterval(activeGroups['interval']);
