@@ -17,9 +17,9 @@ AUTO_STATUS_MSG: process.env.AUTO_STATUS_MSG || "*SEEN YOUR STATUS BY D-XTRO-MD 
 // set the auto reply massage on status reply  
 PREFIX: process.env.PREFIX || ".",
 // add your prifix for bot   
-BOT_NAME: process.env.BOT_NAME || "D-XTRO-MD",
+BOT_NAME: process.env.BOT_NAME || "𝐙𝐄𝐏𝐈𝐗-𝐌𝐃",
 // add bot namw here for menu
-STICKER_NAME: process.env.STICKER_NAME || "D-XTRO-MD",
+STICKER_NAME: process.env.STICKER_NAME || "𝐙𝐄𝐏𝐈𝐙-𝐌𝐃",
 // type sticker pack name 
 CUSTOM_REACT: process.env.CUSTOM_REACT || "false",
 // make this true for custum emoji react    
